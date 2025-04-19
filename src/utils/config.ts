@@ -5,11 +5,13 @@ import path from "path"
 import { pickObject } from "./object"
 
 export type CommitType = (typeof COMMIT_TYPE_MAP)[number]
+export type BranchType = (typeof BRANCH_TYPE_MAP)[number]
 export type ConfigKey = (typeof CONFIG_KEY_MAP)[number]
 export type Config = { [key in ConfigKey]?: string }
 
 export const CONFIG_PATH = path.join(os.homedir(), ".ai-commit")
 export const COMMIT_TYPE_MAP = ["conventional"] as const
+export const BRANCH_TYPE_MAP = ["conventional"] as const
 export const CONFIG_KEY_MAP = [
   "apiKey",
   "generate",
@@ -26,7 +28,7 @@ export const DEFAULT_CONFIG: Config = {
   locale: "en",
   timeout: "10000",
   type: undefined,
-  model: "gpt-4",
+  model: "gemini-2.0-flash",
   maxLength: "50",
 }
 
@@ -55,8 +57,8 @@ export const onValidConfig = (obj: Record<string, any>) => {
         onValidateProperty(key, !!value, "Cannot be empty")
         onValidateProperty(
           key,
-          value.startsWith("sk-"),
-          "Must start with `sk-`",
+          value.startsWith("AIza"),
+          "Must start with `AIza`",
         )
 
         break
