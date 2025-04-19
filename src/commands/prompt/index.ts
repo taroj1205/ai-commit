@@ -2,7 +2,7 @@ import { existsSync } from "fs"
 import { mkdir, writeFile } from "fs/promises"
 import path from "path"
 import { execa } from "execa"
-import type { CommitType } from "../../utils/config"
+import type { BranchType, CommitType } from "../../utils/config"
 import { CONFIG_PATH } from "../../utils/config"
 import { prompts } from "../../utils/prompts"
 
@@ -42,6 +42,46 @@ export const DEFAULT_PROMPT = [
   "{{ commitRule }}",
   "The commit message subject must start with a lower-case letter. Do not capitalize the first word.",
   "The commit message subject must be in the present tense. Do not use past tense.",
+]
+  .filter(Boolean)
+  .join("\n")
+
+export const BRANCH_RULES: Record<BranchType, string> = {
+  conventional: "<type>/<short-description-with-kebab-case>",
+}
+
+export const BRANCH_TYPES: Record<BranchType, string> = {
+  conventional: [
+    `Choose a type from the type-to-description JSON below that best describes the git diff:`,
+    JSON.stringify(
+      {
+        feat: "A new feature",
+        fix: "A bug fix",
+        docs: "Documentation only changes",
+        style:
+          "Changes that do not affect the meaning of the code (white-space, formatting, etc)",
+        refactor: "A code change that neither fixes a bug nor adds a feature",
+        perf: "A code change that improves performance",
+        test: "Adding missing tests or correcting existing tests",
+        build: "Changes that affect the build system or external dependencies",
+        ci: "Changes to our CI configuration files and scripts",
+        chore: "Other changes that don't modify src or test files",
+        revert: "Reverts a previous commit",
+      },
+      null,
+      2,
+    ),
+  ].join("\n"),
+}
+
+export const DEFAULT_BRANCH_PROMPT = [
+  "Generate a concise and conventional git branch name for the following code diff with the given specifications below:",
+  `Branch name must use only lowercase letters, numbers, and hyphens.`,
+  `Use the format: {{ branchRule }}`,
+  `Choose a type from the list: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.`,
+  "The short description must be in kebab-case and summarize the changes.",
+  "Exclude anything unnecessary such as translation or explanations. Respond with only the branch name.",
+  "{{ branchType }}",
 ]
   .filter(Boolean)
   .join("\n")

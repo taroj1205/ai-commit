@@ -2,7 +2,7 @@ import c from "chalk"
 import { execa } from "execa"
 import type { Config } from "../../utils/config"
 import { getConfig, onValidateProperty } from "../../utils/config"
-import { generateBranchName, generateCommitMessages } from "../../utils/gemini"
+import { generateBranchNames, generateCommitMessages } from "../../utils/gemini"
 import {
   getDiff,
   getNotStagedFiles,
@@ -69,8 +69,54 @@ const detectStagedFiles =
     }
   }
 
+export const branchName = (diff: string) => async (p: Prompts, s: Spinner) => {
+  s.start("Analyzing your changes with the AI (branch name)")
+
+  const messages = await generateBranchNames({ ...config, diff })
+
+  let message: string
+
+  if (!messages.length)
+    throw new Error("No branch names were generated. Try again.")
+
+  s.stop("Analyzed your changes (branch name)")
+
+  if (messages.length === 1) {
+    message = messages[0]
+
+    p.note(message, "Branch name")
+
+    const shouldContinue = await p.confirm({
+      message: `Use this branch name?`,
+    })
+
+    if (p.isCancel(shouldContinue) || !shouldContinue) {
+      p.done("Reset cancelled")
+
+      return
+    }
+  } else {
+    const selectedMessage = await p.select<Option[], string>({
+      message: `Pick a branch name to use: ${c.dim("(Ctrl+c to exit)")}`,
+      options: messages.map((value) => ({ value })),
+    })
+
+    if (p.isCancel(selectedMessage)) {
+      p.done("Branch name cancelled")
+
+      return
+    }
+
+    message = selectedMessage
+  }
+
+  await execa("git", ["checkout", "-b", message])
+
+  p.complete("Successfully checked out to new branch")
+}
+
 const commitMessage = (diff: string) => async (p: Prompts, s: Spinner) => {
-  s.start("Analyzing your changes with the AI")
+  s.start("Analyzing your changes with the AI (commit message)")
 
   const messages = await generateCommitMessages({ ...config, diff })
 
@@ -79,7 +125,7 @@ const commitMessage = (diff: string) => async (p: Prompts, s: Spinner) => {
   if (!messages.length)
     throw new Error("No commit messages were generated. Try again.")
 
-  s.stop("Analyzed your changes")
+  s.stop("Analyzed your changes (commit message)")
 
   if (messages.length === 1) {
     message = messages[0]
@@ -140,6 +186,14 @@ const commit = async ({
     if (generate) config.generate = generate
     if (type) config.type = type
 
+    const diff = await detectStagedFiles(all, excludes)(p, s)
+
+    if (!diff) {
+      p.done("No worked files found")
+
+      return
+    }
+
     s.start("Checking current git branch")
     const { stdout: currentBranch } = await execa("git", [
       "rev-parse",
@@ -152,24 +206,13 @@ const commit = async ({
     ])
     const defaultBranch = defaultRef.split("/").pop()
 
+    s.stop("Checked current git branch")
+
     if (currentBranch === defaultBranch) {
-      s.message("On default branch, generating a new branch name...")
-      const diff = await getDiff(excludes)
-      let branchName: string
-      try {
-        branchName = await generateBranchName({ apiKey: config.apiKey!, diff })
-      } catch (e) {
-        branchName = `ai-branch-${Date.now()}`
-        p.note(branchName, "AI branch name generation failed, using fallback")
-      }
-      await execa("git", ["checkout", "-b", branchName])
-      p.note(branchName, "Checked out to new branch")
+      await branchName(diff)(p, s)
     }
-    s.stop("Branch check complete")
 
-    const diff = await detectStagedFiles(all, excludes)(p, s)
-
-    if (diff) await commitMessage(diff)(p, s)
+    await commitMessage(diff)(p, s)
   })
 }
 
