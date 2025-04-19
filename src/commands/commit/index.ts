@@ -200,11 +200,18 @@ const commit = async ({
       "--abbrev-ref",
       "HEAD",
     ])
-    const { stdout: defaultRef } = await execa("git", [
-      "symbolic-ref",
-      "refs/remotes/origin/HEAD",
-    ])
-    const defaultBranch = defaultRef.split("/").pop()
+
+    let defaultBranch = "main" // Default to 'main' if remote tracking branch is not found
+    try {
+      const { stdout: defaultRef } = await execa("git", [
+        "symbolic-ref",
+        "refs/remotes/origin/HEAD",
+      ])
+      defaultBranch = defaultRef.split("/").pop() || defaultBranch
+    } catch {
+      // If we can't get the remote tracking branch, just use the current branch name
+      defaultBranch = currentBranch
+    }
 
     s.stop("Checked current git branch")
 
