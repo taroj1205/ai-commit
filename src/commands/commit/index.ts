@@ -2,13 +2,13 @@ import c from "chalk"
 import { execa } from "execa"
 import type { Config } from "../../utils/config"
 import { getConfig, onValidateProperty } from "../../utils/config"
+import { generateCommitMessages } from "../../utils/gemini"
 import {
   getDiff,
   getNotStagedFiles,
   getStagedFiles,
   getUntrackedFiles,
 } from "../../utils/git"
-import { generateCommitMessages } from "../../utils/openai"
 import type { Option, Prompts, Spinner } from "../../utils/prompts"
 import { prompts } from "../../utils/prompts"
 
@@ -134,7 +134,7 @@ const commit = async ({
     onValidateProperty(
       "apiKey",
       !!config.apiKey,
-      "Please set your OpenAI API key via `ai-commit config set apiKey=<your token>`",
+      "Please set your Gemini API key via `ai-commit config set apiKey=<your token>`",
     )
 
     if (generate) config.generate = generate

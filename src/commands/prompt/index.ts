@@ -40,6 +40,8 @@ export const DEFAULT_PROMPT = [
   "{{ commitType }}",
   "The output response must be in format:",
   "{{ commitRule }}",
+  "The commit message subject must start with a lower-case letter. Do not capitalize the first word.",
+  "The commit message subject must be in the present tense. Do not use past tense.",
 ]
   .filter(Boolean)
   .join("\n")

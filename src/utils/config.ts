@@ -26,7 +26,7 @@ export const DEFAULT_CONFIG: Config = {
   locale: "en",
   timeout: "10000",
   type: undefined,
-  model: "gpt-4",
+  model: "gemini-2.0-flash",
   maxLength: "50",
 }
 
@@ -55,8 +55,8 @@ export const onValidConfig = (obj: Record<string, any>) => {
         onValidateProperty(key, !!value, "Cannot be empty")
         onValidateProperty(
           key,
-          value.startsWith("sk-"),
-          "Must start with `sk-`",
+          value.startsWith("AIza"),
+          "Must start with `AIza`",
         )
 
         break
