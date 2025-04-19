@@ -2,7 +2,7 @@ import c from "chalk"
 import { execa } from "execa"
 import type { Config } from "../../utils/config"
 import { getConfig, onValidateProperty } from "../../utils/config"
-import { generateCommitMessages } from "../../utils/gemini"
+import { generateBranchName, generateCommitMessages } from "../../utils/gemini"
 import {
   getDiff,
   getNotStagedFiles,
@@ -139,6 +139,33 @@ const commit = async ({
 
     if (generate) config.generate = generate
     if (type) config.type = type
+
+    s.start("Checking current git branch")
+    const { stdout: currentBranch } = await execa("git", [
+      "rev-parse",
+      "--abbrev-ref",
+      "HEAD",
+    ])
+    const { stdout: defaultRef } = await execa("git", [
+      "symbolic-ref",
+      "refs/remotes/origin/HEAD",
+    ])
+    const defaultBranch = defaultRef.split("/").pop()
+
+    if (currentBranch === defaultBranch) {
+      s.message("On default branch, generating a new branch name...")
+      const diff = await getDiff(excludes)
+      let branchName: string
+      try {
+        branchName = await generateBranchName({ apiKey: config.apiKey!, diff })
+      } catch (e) {
+        branchName = `ai-branch-${Date.now()}`
+        p.note(branchName, "AI branch name generation failed, using fallback")
+      }
+      await execa("git", ["checkout", "-b", branchName])
+      p.note(branchName, "Checked out to new branch")
+    }
+    s.stop("Branch check complete")
 
     const diff = await detectStagedFiles(all, excludes)(p, s)
 

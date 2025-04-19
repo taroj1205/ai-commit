@@ -19,6 +19,22 @@ const generatePrompt = (
   return prompt.replace(/{{\s*(\w+)\s*}}/g, (_, key) => replacements[key] || "")
 }
 
+export const generateBranchName = async ({
+  apiKey,
+  diff,
+}: {
+  apiKey: string
+  diff: string
+}): Promise<string> => {
+  const genAI = new GoogleGenerativeAI(apiKey)
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-pro" })
+  const prompt = `Suggest a concise, conventional git branch name (kebab-case, no spaces, no special characters) for the following changes:\n${diff}\nRespond with only the branch name.`
+  const result = await model.generateContent(prompt)
+  // Parse response, remove quotes/whitespace
+  const branchName = result.response.text().replace(/["'\s]/g, "")
+  return branchName
+}
+
 export type GenerateCommitMessagesParameters = Config & {
   diff: string
 }
